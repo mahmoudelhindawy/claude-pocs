@@ -14,7 +14,7 @@
     </PackageReference>
     <!-- Official Couchbase Entity Framework Core Provider -->
     <PackageReference Include="Couchbase.EntityFrameworkCore" Version="1.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
   </ItemGroup>
 
   <ItemGroup>
