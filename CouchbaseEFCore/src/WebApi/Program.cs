@@ -1,5 +1,6 @@
 using Application.Interfaces;
 using Application.Services;
+using Couchbase.Extensions.DependencyInjection;
 using Domain.Interfaces;
 using Infrastructure.Persistence;
 using Infrastructure.Repositories;
@@ -16,41 +17,44 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "Couchbase API with Entity Framework Core",
         Version = "v1",
-        Description = "Clean Architecture API using Entity Framework Core patterns with Couchbase backend",
+        Description = "Clean Architecture API using Entity Framework Core with Couchbase as the database provider",
         Contact = new Microsoft.OpenApi.Models.OpenApiContact
         {
             Name = "Mahmoud El Hindawy",
             Email = "mahmoud.elhendawy@gmail.com"
         }
     });
-    
-    // Include XML comments if available
-    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
-    {
-        options.IncludeXmlComments(xmlPath);
-    }
 });
 
 // Configure Couchbase Settings
-builder.Services.Configure<CouchbaseSettings>(
-    builder.Configuration.GetSection("CouchbaseSettings"));
+var couchbaseSettings = builder.Configuration.GetSection("CouchbaseSettings").Get<CouchbaseSettings>();
+builder.Services.Configure<CouchbaseSettings>(builder.Configuration.GetSection("CouchbaseSettings"));
 
-// Register Entity Framework Core DbContext
-builder.Services.AddDbContext<CouchbaseContext>(options =>
+// Register Couchbase cluster and bucket providers
+builder.Services.AddCouchbase(options =>
 {
-    // Using InMemory as cache layer - actual data stored in Couchbase
-    options.UseInMemoryDatabase("CouchbaseCache");
+    options.ConnectionString = couchbaseSettings!.ConnectionString;
+    options.UserName = couchbaseSettings.Username;
+    options.Password = couchbaseSettings.Password;
 });
 
-// Register Repositories (using EF Core patterns)
+// Register named bucket provider
+builder.Services.AddCouchbaseBucket<INamedBucketProvider>(couchbaseSettings!.BucketName);
+
+// Register Entity Framework Core DbContext with Couchbase
+builder.Services.AddDbContext<CouchbaseContext>((serviceProvider, options) =>
+{
+    // Use the custom Couchbase provider
+    options.UseCouchbase();
+});
+
+// Register Repositories
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
 // Register Application Services
 builder.Services.AddScoped<IProductService, ProductService>();
 
-// Add CORS if needed
+// Add CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -71,8 +75,8 @@ using (var scope = app.Services.CreateScope())
 {
     try
     {
-        var couchbaseContext = scope.ServiceProvider.GetRequiredService<CouchbaseContext>();
-        await couchbaseContext.EnsureBucketExistsAsync();
+        var dbCreator = scope.ServiceProvider.GetRequiredService<ICouchbaseDatabaseCreator>();
+        await dbCreator.EnsureBucketCreatedAsync();
         app.Logger.LogInformation("Couchbase bucket initialized successfully");
     }
     catch (Exception ex)
@@ -103,5 +107,6 @@ app.MapHealthChecks("/health");
 app.Logger.LogInformation("Application started successfully");
 app.Logger.LogInformation("Swagger UI available at: /swagger");
 app.Logger.LogInformation("Health check available at: /health");
+app.Logger.LogInformation("Using Couchbase as EF Core database provider");
 
 app.Run();
