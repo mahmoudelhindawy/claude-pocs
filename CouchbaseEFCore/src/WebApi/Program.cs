@@ -41,11 +41,12 @@ builder.Services.AddCouchbase(options =>
 // Register named bucket provider
 builder.Services.AddCouchbaseBucket<INamedBucketProvider>(couchbaseSettings!.BucketName);
 
-// Register Entity Framework Core DbContext with Couchbase
+// Register Entity Framework Core DbContext with InMemory database
+// Note: We use InMemory for EF Core compatibility, actual data is stored in Couchbase via repositories
 builder.Services.AddDbContext<CouchbaseContext>((serviceProvider, options) =>
 {
-    // Use the custom Couchbase provider
-    options.UseCouchbase();
+    options.UseInMemoryDatabase("CouchbaseApp");
+    options.EnableSensitiveDataLogging();
 });
 
 // Register Database Creator
