@@ -1,28 +1,18 @@
-using Couchbase;
-using Couchbase.Extensions.DependencyInjection;
-using Couchbase.KeyValue;
+using Couchbase.EntityFrameworkCore.Extensions;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence;
 
 /// <summary>
-/// DbContext for Couchbase using Entity Framework Core patterns
-/// This uses Couchbase through dependency injection
+/// DbContext for Couchbase using the official Couchbase.EntityFrameworkCore provider
+/// Documentation: https://docs.couchbase.com/efcore-provider/current/entity-framework-core-configuration.html
 /// </summary>
 public class CouchbaseContext : DbContext
 {
-    private readonly IClusterProvider _clusterProvider;
-    private readonly INamedBucketProvider _bucketProvider;
-
-    public CouchbaseContext(
-        DbContextOptions<CouchbaseContext> options,
-        IClusterProvider clusterProvider,
-        INamedBucketProvider bucketProvider) 
+    public CouchbaseContext(DbContextOptions<CouchbaseContext> options) 
         : base(options)
     {
-        _clusterProvider = clusterProvider;
-        _bucketProvider = bucketProvider;
     }
 
     public DbSet<Product> Products { get; set; }
@@ -31,41 +21,28 @@ public class CouchbaseContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure Product entity
+        // Configure Product entity for Couchbase
         modelBuilder.Entity<Product>(entity =>
         {
+            // Specify the Couchbase bucket for this entity
+            entity.ToCouchbaseBucket("products");
+            
+            // Configure primary key
             entity.HasKey(e => e.Id);
+            
+            // Property configurations
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Type).HasColumnName("type");
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.Category).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Price).HasPrecision(18, 2);
-            entity.Ignore(e => e.Cas); // CAS is runtime-only, not persisted
+            entity.Property(e => e.Quantity).IsRequired();
+            entity.Property(e => e.IsActive).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+            
+            // Ignore CAS - it's managed automatically by Couchbase
+            entity.Ignore(e => e.Cas);
         });
-    }
-
-    /// <summary>
-    /// Get Couchbase cluster instance
-    /// </summary>
-    public async Task<ICluster> GetClusterAsync()
-    {
-        return await _clusterProvider.GetClusterAsync();
-    }
-
-    /// <summary>
-    /// Get Couchbase bucket instance
-    /// </summary>
-    public async Task<IBucket> GetBucketAsync()
-    {
-        return await _bucketProvider.GetBucketAsync();
-    }
-
-    /// <summary>
-    /// Get Couchbase collection instance
-    /// </summary>
-    public async Task<ICouchbaseCollection> GetCollectionAsync()
-    {
-        var bucket = await GetBucketAsync();
-        var scope = bucket.Scope("_default");
-        return scope.Collection("_default");
     }
 }
