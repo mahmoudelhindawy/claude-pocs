@@ -12,10 +12,9 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="CouchbaseNetClient" Version="3.5.1" />
-    <PackageReference Include="Couchbase.Extensions.DependencyInjection" Version="3.5.1" />
+    <!-- Official Couchbase Entity Framework Core Provider -->
+    <PackageReference Include="Couchbase.EntityFrameworkCore" Version="1.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
