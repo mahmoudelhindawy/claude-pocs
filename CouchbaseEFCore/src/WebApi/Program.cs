@@ -34,10 +34,13 @@ builder.Services.Configure<CouchbaseSettings>(
 
 // Register DbContext with official Couchbase Entity Framework Core provider
 builder.Services.AddDbContext<CouchbaseContext>(options =>
+{
     options.UseCouchbase(
         couchbaseSettings!.ConnectionString,
         couchbaseSettings.Username,
-        couchbaseSettings.Password));
+        couchbaseSettings.Password,
+        couchbaseSettings.BucketName);  // Pass bucket name here
+});
 
 // Register Repositories
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
