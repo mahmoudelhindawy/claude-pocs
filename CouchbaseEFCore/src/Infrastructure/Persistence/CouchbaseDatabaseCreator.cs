@@ -11,13 +11,16 @@ namespace Infrastructure.Persistence;
 public class CouchbaseDatabaseCreator : ICouchbaseDatabaseCreator
 {
     private readonly IClusterProvider _clusterProvider;
+    private readonly INamedBucketProvider _bucketProvider;
     private readonly CouchbaseSettings _settings;
 
     public CouchbaseDatabaseCreator(
         IClusterProvider clusterProvider,
+        INamedBucketProvider bucketProvider,
         IOptions<CouchbaseSettings> settings)
     {
         _clusterProvider = clusterProvider;
+        _bucketProvider = bucketProvider;
         _settings = settings.Value;
     }
 
