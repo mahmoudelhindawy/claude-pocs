@@ -13,12 +13,12 @@ namespace Infrastructure.Persistence;
 public class CouchbaseContext : DbContext
 {
     private readonly IClusterProvider _clusterProvider;
-    private readonly IBucketProvider _bucketProvider;
+    private readonly INamedBucketProvider _bucketProvider;
 
     public CouchbaseContext(
         DbContextOptions<CouchbaseContext> options,
         IClusterProvider clusterProvider,
-        IBucketProvider bucketProvider) 
+        INamedBucketProvider bucketProvider) 
         : base(options)
     {
         _clusterProvider = clusterProvider;
