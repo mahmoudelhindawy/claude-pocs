@@ -1,4 +1,5 @@
 using Couchbase;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.KeyValue;
 using Domain.Entities;
 using Domain.Interfaces;
