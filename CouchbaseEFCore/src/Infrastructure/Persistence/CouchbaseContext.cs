@@ -8,7 +8,7 @@ namespace Infrastructure.Persistence;
 
 /// <summary>
 /// DbContext for Couchbase using Entity Framework Core patterns
-/// This uses Couchbase as the actual database provider through dependency injection
+/// This uses Couchbase through dependency injection
 /// </summary>
 public class CouchbaseContext : DbContext
 {
@@ -26,15 +26,6 @@ public class CouchbaseContext : DbContext
     }
 
     public DbSet<Product> Products { get; set; }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured)
-        {
-            // Configure to use Couchbase provider
-            optionsBuilder.UseCouchbase();
-        }
-    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
