@@ -48,6 +48,9 @@ builder.Services.AddDbContext<CouchbaseContext>((serviceProvider, options) =>
     options.UseCouchbase();
 });
 
+// Register Database Creator
+builder.Services.AddScoped<ICouchbaseDatabaseCreator, CouchbaseDatabaseCreator>();
+
 // Register Repositories
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
