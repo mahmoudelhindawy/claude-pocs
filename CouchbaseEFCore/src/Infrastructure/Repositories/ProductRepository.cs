@@ -1,6 +1,7 @@
 using Domain.Entities;
 using Domain.Interfaces;
 using Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories;
 
@@ -12,40 +13,25 @@ public class ProductRepository : Repository<Product>, IProductRepository
 
     public async Task<IEnumerable<Product>> GetByCategoryAsync(string category)
     {
-        // Use N1QL query for efficient filtering
-        var query = $@"
-            SELECT META().id, * 
-            FROM `products` 
-            WHERE type = 'product' 
-            AND category = '{category}'
-        ";
-        
-        return await ExecuteQueryAsync(query);
+        // LINQ query - automatically translated to N1QL by the official provider
+        return await _dbSet
+            .Where(p => p.Category == category)
+            .ToListAsync();
     }
 
     public async Task<IEnumerable<Product>> GetActiveProductsAsync()
     {
-        // Use N1QL query for filtering active products
-        var query = @"
-            SELECT META().id, * 
-            FROM `products` 
-            WHERE type = 'product' 
-            AND isActive = true
-        ";
-        
-        return await ExecuteQueryAsync(query);
+        // LINQ works natively with Couchbase
+        return await _dbSet
+            .Where(p => p.IsActive)
+            .ToListAsync();
     }
 
     public async Task<IEnumerable<Product>> SearchByNameAsync(string searchTerm)
     {
-        // Use N1QL query with LIKE for text search
-        var query = $@"
-            SELECT META().id, * 
-            FROM `products` 
-            WHERE type = 'product' 
-            AND LOWER(name) LIKE '%{searchTerm.ToLower()}%'
-        ";
-        
-        return await ExecuteQueryAsync(query);
+        // Even Contains() is supported!
+        return await _dbSet
+            .Where(p => p.Name.Contains(searchTerm))
+            .ToListAsync();
     }
 }
