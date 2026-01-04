@@ -90,26 +90,26 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Enable Swagger in all environments (Development and Production)
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Couchbase API v1");
-        options.RoutePrefix = "swagger";
-        options.DocumentTitle = "Couchbase EF Core API";
-    });
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Couchbase API v1");
+    options.RoutePrefix = string.Empty; // Serve Swagger UI at the app's root (http://localhost:5000)
+    options.DocumentTitle = "Couchbase EF Core API";
+});
 
-app.UseHttpsRedirection();
+// Comment out HTTPS redirection to avoid the warning
+// app.UseHttpsRedirection();
+
 app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Logger.LogInformation("Application started successfully");
-app.Logger.LogInformation("Swagger UI available at: /swagger");
-app.Logger.LogInformation("Health check available at: /health");
+app.Logger.LogInformation("Swagger UI available at: http://localhost:5000");
+app.Logger.LogInformation("Health check available at: http://localhost:5000/health");
 app.Logger.LogInformation("Using Couchbase as EF Core database provider");
 
 app.Run();
