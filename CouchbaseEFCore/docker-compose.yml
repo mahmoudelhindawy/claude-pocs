@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  couchbase:
+    image: couchbase:community-7.6.0
+    container_name: couchbase-server
+    ports:
+      - "8091-8096:8091-8096"  # Admin Console, API ports
+      - "11210:11210"           # Internal/External Bucket Port
+    environment:
+      - COUCHBASE_ADMINISTRATOR_USERNAME=Administrator
+      - COUCHBASE_ADMINISTRATOR_PASSWORD=password
+    volumes:
+      - couchbase_data:/opt/couchbase/var
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/ui/index.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - couchbase-network
+
+volumes:
+  couchbase_data:
+    driver: local
+
+networks:
+  couchbase-network:
+    driver: bridge
