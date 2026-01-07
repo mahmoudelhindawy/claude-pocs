@@ -1,11 +1,12 @@
-using Couchbase.EntityFrameworkCore.Extensions;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 
 namespace Infrastructure.Persistence;
 
 /// <summary>
 /// DbContext for Couchbase using the official Couchbase.EntityFrameworkCore provider
+/// Entity configurations are separated into IEntityTypeConfiguration classes
 /// Documentation: https://docs.couchbase.com/efcore-provider/current/entity-framework-core-configuration.html
 /// </summary>
 public class CouchbaseContext : DbContext
@@ -21,26 +22,10 @@ public class CouchbaseContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure Product entity
-        modelBuilder.Entity<Product>(entity =>
-        {
-            entity.ToCouchbaseCollection(this, "product");
-            // Configure primary key
-            entity.HasKey(e => e.Id);
-            
-            // Property configurations
-            entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.Type).HasColumnName("type");
-            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
-            entity.Property(e => e.Description).HasMaxLength(1000);
-            entity.Property(e => e.Category).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.Price).HasPrecision(18, 2);
-            entity.Property(e => e.Quantity).IsRequired();
-            entity.Property(e => e.IsActive).IsRequired();
-            entity.Property(e => e.CreatedAt).IsRequired();
-            
-            // Ignore CAS - it's managed automatically by Couchbase
-            entity.Ignore(e => e.Cas);
-        });
+        // Apply all IEntityTypeConfiguration implementations from current assembly
+        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+
+        // Alternative: Apply configurations manually (if you prefer explicit control)
+        // modelBuilder.ApplyConfiguration(new ProductEntityTypeConfiguration());
     }
 }
