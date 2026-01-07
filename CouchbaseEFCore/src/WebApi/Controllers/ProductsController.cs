@@ -1,5 +1,6 @@
 using Application.DTOs;
 using Application.Interfaces;
+using Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers;
@@ -24,16 +25,8 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<ProductDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<ProductDto>>> GetAll()
     {
-        try
-        {
-            var products = await _productService.GetAllProductsAsync();
-            return Ok(products);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting all products");
-            return StatusCode(500, "Internal server error");
-        }
+        var products = await _productService.GetAllAsync();
+        return Ok(products);
     }
 
     /// <summary>
@@ -44,20 +37,14 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProductDto>> GetById(string id)
     {
-        try
+        var product = await _productService.GetByIdAsync(id);
+        
+        if (product == null)
         {
-            var product = await _productService.GetProductByIdAsync(id);
-            if (product == null)
-            {
-                return NotFound($"Product with ID {id} not found");
-            }
-            return Ok(product);
+            return NotFound(new { message = $"Product with ID '{id}' not found" });
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting product by ID: {Id}", id);
-            return StatusCode(500, "Internal server error");
-        }
+
+        return Ok(product);
     }
 
     /// <summary>
@@ -67,35 +54,19 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<ProductDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<ProductDto>>> GetByCategory(string category)
     {
-        try
-        {
-            var products = await _productService.GetProductsByCategoryAsync(category);
-            return Ok(products);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting products by category: {Category}", category);
-            return StatusCode(500, "Internal server error");
-        }
+        var products = await _productService.GetByCategoryAsync(category);
+        return Ok(products);
     }
 
     /// <summary>
-    /// Get all active products
+    /// Get active products
     /// </summary>
     [HttpGet("active")]
     [ProducesResponseType(typeof(IEnumerable<ProductDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<ProductDto>>> GetActive()
+    public async Task<ActionResult<IEnumerable<ProductDto>>> GetActiveProducts()
     {
-        try
-        {
-            var products = await _productService.GetActiveProductsAsync();
-            return Ok(products);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting active products");
-            return StatusCode(500, "Internal server error");
-        }
+        var products = await _productService.GetActiveProductsAsync();
+        return Ok(products);
     }
 
     /// <summary>
@@ -103,73 +74,164 @@ public class ProductsController : ControllerBase
     /// </summary>
     [HttpGet("search/{searchTerm}")]
     [ProducesResponseType(typeof(IEnumerable<ProductDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<ProductDto>>> Search(string searchTerm)
+    public async Task<ActionResult<IEnumerable<ProductDto>>> SearchByName(string searchTerm)
     {
-        try
-        {
-            var products = await _productService.SearchProductsByNameAsync(searchTerm);
-            return Ok(products);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error searching products: {SearchTerm}", searchTerm);
-            return StatusCode(500, "Internal server error");
-        }
+        var products = await _productService.SearchByNameAsync(searchTerm);
+        return Ok(products);
+    }
+
+    // ====================================================================
+    // NEW ENDPOINTS FOR NESTED OBJECTS
+    // ====================================================================
+
+    /// <summary>
+    /// Get products by warehouse city
+    /// </summary>
+    [HttpGet("warehouse/city/{city}")]
+    [ProducesResponseType(typeof(IEnumerable<ProductDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<ProductDto>>> GetByWarehouseCity(string city)
+    {
+        var products = await _productService.GetByWarehouseCityAsync(city);
+        return Ok(products);
     }
 
     /// <summary>
-    /// Create a new product
+    /// Get products by warehouse code
+    /// </summary>
+    [HttpGet("warehouse/code/{code}")]
+    [ProducesResponseType(typeof(IEnumerable<ProductDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<ProductDto>>> GetByWarehouseCode(string code)
+    {
+        var products = await _productService.GetByWarehouseCodeAsync(code);
+        return Ok(products);
+    }
+
+    /// <summary>
+    /// Get products by specification key and value
+    /// </summary>
+    [HttpGet("specification/{key}/{value}")]
+    [ProducesResponseType(typeof(IEnumerable<ProductDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<ProductDto>>> GetBySpecification(string key, string value)
+    {
+        var products = await _productService.GetBySpecificationAsync(key, value);
+        return Ok(products);
+    }
+
+    /// <summary>
+    /// Get products near coordinates (within radius)
+    /// </summary>
+    [HttpGet("nearby")]
+    [ProducesResponseType(typeof(IEnumerable<ProductDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<ProductDto>>> GetNearbyProducts(
+        [FromQuery] double latitude,
+        [FromQuery] double longitude,
+        [FromQuery] double radiusKm = 50)
+    {
+        var products = await _productService.GetNearbyProductsAsync(latitude, longitude, radiusKm);
+        return Ok(products);
+    }
+
+    // ====================================================================
+    // CREATE, UPDATE, DELETE
+    // ====================================================================
+
+    /// <summary>
+    /// Create a new product (with nested objects)
     /// </summary>
     [HttpPost]
     [ProducesResponseType(typeof(ProductDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<ProductDto>> Create([FromBody] CreateProductDto productDto)
+    public async Task<ActionResult<ProductDto>> Create([FromBody] CreateProductDto createDto)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            return BadRequest(ModelState);
+        }
 
-            var product = await _productService.CreateProductAsync(productDto);
-            return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating product");
-            return StatusCode(500, "Internal server error");
-        }
+        var product = await _productService.CreateAsync(createDto);
+        return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
     }
 
     /// <summary>
-    /// Update an existing product
+    /// Update an existing product (with nested objects)
     /// </summary>
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<ProductDto>> Update(string id, [FromBody] UpdateProductDto productDto)
+    public async Task<ActionResult<ProductDto>> Update(string id, [FromBody] UpdateProductDto updateDto)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            return BadRequest(ModelState);
+        }
 
-            var product = await _productService.UpdateProductAsync(id, productDto);
-            return Ok(product);
-        }
-        catch (KeyNotFoundException)
+        var product = await _productService.UpdateAsync(id, updateDto);
+        
+        if (product == null)
         {
-            return NotFound($"Product with ID {id} not found");
+            return NotFound(new { message = $"Product with ID '{id}' not found" });
         }
-        catch (Exception ex)
+
+        return Ok(product);
+    }
+
+    /// <summary>
+    /// Update product warehouse
+    /// </summary>
+    [HttpPut("{id}/warehouse")]
+    [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProductDto>> UpdateWarehouse(
+        string id, 
+        [FromBody] WarehouseLocationDto warehouseDto)
+    {
+        var product = await _productService.UpdateWarehouseAsync(id, warehouseDto);
+        
+        if (product == null)
         {
-            _logger.LogError(ex, "Error updating product: {Id}", id);
-            return StatusCode(500, "Internal server error");
+            return NotFound(new { message = $"Product with ID '{id}' not found" });
         }
+
+        return Ok(product);
+    }
+
+    /// <summary>
+    /// Add specification to product
+    /// </summary>
+    [HttpPost("{id}/specifications")]
+    [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProductDto>> AddSpecification(
+        string id,
+        [FromBody] ProductSpecificationDto specificationDto)
+    {
+        var product = await _productService.AddSpecificationAsync(id, specificationDto);
+        
+        if (product == null)
+        {
+            return NotFound(new { message = $"Product with ID '{id}' not found" });
+        }
+
+        return Ok(product);
+    }
+
+    /// <summary>
+    /// Remove specification from product
+    /// </summary>
+    [HttpDelete("{id}/specifications/{key}")]
+    [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProductDto>> RemoveSpecification(string id, string key)
+    {
+        var product = await _productService.RemoveSpecificationAsync(id, key);
+        
+        if (product == null)
+        {
+            return NotFound(new { message = $"Product with ID '{id}' not found" });
+        }
+
+        return Ok(product);
     }
 
     /// <summary>
@@ -180,19 +242,13 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(string id)
     {
-        try
+        var result = await _productService.DeleteAsync(id);
+        
+        if (!result)
         {
-            var result = await _productService.DeleteProductAsync(id);
-            if (!result)
-            {
-                return NotFound($"Product with ID {id} not found");
-            }
-            return NoContent();
+            return NotFound(new { message = $"Product with ID '{id}' not found" });
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting product: {Id}", id);
-            return StatusCode(500, "Internal server error");
-        }
+
+        return NoContent();
     }
 }
