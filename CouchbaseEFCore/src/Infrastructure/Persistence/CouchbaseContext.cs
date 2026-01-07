@@ -1,3 +1,4 @@
+using Couchbase.EntityFrameworkCore.Extensions;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,6 +24,7 @@ public class CouchbaseContext : DbContext
         // Configure Product entity
         modelBuilder.Entity<Product>(entity =>
         {
+            entity.ToCouchbaseCollection(this, "product");
             // Configure primary key
             entity.HasKey(e => e.Id);
             

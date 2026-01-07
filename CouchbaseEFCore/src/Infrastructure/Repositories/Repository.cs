@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Domain.Entities;
 using Domain.Interfaces;
 using Infrastructure.Persistence;
@@ -8,6 +9,7 @@ namespace Infrastructure.Repositories;
 /// <summary>
 /// Generic Repository using standard Entity Framework Core with Couchbase provider
 /// </summary>
+///
 public class Repository<T> : IRepository<T> where T : BaseEntity
 {
     protected readonly CouchbaseContext _context;

@@ -4,6 +4,16 @@ using Domain.Interfaces;
 using Infrastructure.Persistence;
 using Infrastructure.Repositories;
 
+//using ContosoUniversity.Data;
+using Couchbase;
+using Couchbase.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+//using Serilog.Extensions.Logging.File;
+// using Couchbase.EntityFrameworkCore.Extensions;
+// using Couchbase.EntityFrameworkCore.Infrastructure.Internal;
+// using Couchbase.Extensions.DependencyInjection;
+// using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
@@ -35,11 +45,24 @@ builder.Services.Configure<CouchbaseSettings>(
 // Register DbContext with official Couchbase Entity Framework Core provider
 builder.Services.AddDbContext<CouchbaseContext>(options =>
 {
-    options.UseCouchbase(
-        couchbaseSettings!.ConnectionString,
-        couchbaseSettings.Username,
-        couchbaseSettings.Password,
-        couchbaseSettings.BucketName);  // Pass bucket name here
+    // options.UseCouchbase(
+    //     couchbaseSettings!.ConnectionString,
+    //     couchbaseSettings.Username,
+    //     couchbaseSettings.Password,
+    //     couchbaseSettings.BucketName);  // Pass bucket name here
+    
+    var clusterOptions = new ClusterOptions()
+        .WithCredentials(couchbaseSettings.Username, couchbaseSettings.Password)
+        .WithConnectionString(couchbaseSettings!.ConnectionString);
+
+    options
+        .UseCouchbase(clusterOptions,
+            couchbaseDbContextOptions =>
+            {
+                couchbaseDbContextOptions.Bucket = couchbaseSettings.BucketName;
+                couchbaseDbContextOptions.Scope = couchbaseSettings.ScopeName;
+            });
+    options.UseCamelCaseNamingConvention();
 });
 
 // Register Repositories
