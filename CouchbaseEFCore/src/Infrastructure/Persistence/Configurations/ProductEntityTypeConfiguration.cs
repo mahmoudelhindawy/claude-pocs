@@ -1,12 +1,14 @@
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Couchbase.EntityFrameworkCore.Extensions;
 
 namespace Infrastructure.Persistence.Configurations;
 
 /// <summary>
 /// Entity Type Configuration for Product entity
-/// Receives DbContext via constructor for advanced configuration scenarios
+/// Uses ToCouchbaseCollection to properly map to Couchbase collection
+/// Requires DbContext via constructor for Couchbase-specific collection mapping
 /// </summary>
 public class ProductEntityTypeConfiguration : IEntityTypeConfiguration<Product>
 {
@@ -14,7 +16,7 @@ public class ProductEntityTypeConfiguration : IEntityTypeConfiguration<Product>
 
     /// <summary>
     /// Constructor that receives the DbContext instance
-    /// This allows access to DbContext properties, settings, and methods during configuration
+    /// Required for ToCouchbaseCollection extension method
     /// </summary>
     public ProductEntityTypeConfiguration(CouchbaseContext context)
     {
@@ -23,12 +25,9 @@ public class ProductEntityTypeConfiguration : IEntityTypeConfiguration<Product>
 
     public void Configure(EntityTypeBuilder<Product> builder)
     {
-        // You can now access DbContext properties
-        // Example: var providerName = _context.Database.ProviderName;
-        // Example: var connectionString = _context.Database.GetConnectionString();
-
-        // Table/Collection name
-        builder.ToTable("products");
+        // Use Couchbase-specific collection mapping
+        // This is required instead of builder.ToTable() for Couchbase
+        builder.ToCouchbaseCollection(_context, "products");
 
         // Primary Key
         builder.HasKey(e => e.Id);
@@ -77,9 +76,10 @@ public class ProductEntityTypeConfiguration : IEntityTypeConfiguration<Product>
             .HasColumnName("updatedAt");
 
         // Ignore properties that shouldn't be persisted
+        // CAS is managed by Couchbase automatically
         builder.Ignore(e => e.Cas);
 
-        // Indexes (if supported by Couchbase EF Core provider)
+        // Indexes for Couchbase
         builder.HasIndex(e => e.Category)
             .HasDatabaseName("idx_category");
 
