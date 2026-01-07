@@ -6,13 +6,28 @@ namespace Infrastructure.Persistence.Configurations;
 
 /// <summary>
 /// Entity Type Configuration for Product entity
-/// Isolates EF Core mapping configuration from the Domain layer
+/// Receives DbContext via constructor for advanced configuration scenarios
 /// </summary>
 public class ProductEntityTypeConfiguration : IEntityTypeConfiguration<Product>
 {
+    private readonly CouchbaseContext _context;
+
+    /// <summary>
+    /// Constructor that receives the DbContext instance
+    /// This allows access to DbContext properties, settings, and methods during configuration
+    /// </summary>
+    public ProductEntityTypeConfiguration(CouchbaseContext context)
+    {
+        _context = context;
+    }
+
     public void Configure(EntityTypeBuilder<Product> builder)
     {
-        // Table/Collection name (Couchbase uses collections)
+        // You can now access DbContext properties
+        // Example: var providerName = _context.Database.ProviderName;
+        // Example: var connectionString = _context.Database.GetConnectionString();
+
+        // Table/Collection name
         builder.ToTable("products");
 
         // Primary Key
